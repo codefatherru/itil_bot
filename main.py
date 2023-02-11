@@ -1,3 +1,11 @@
+# coding: utf-8
+"""
+Telegram Бот для обработки входящий сообщений.
+Бот принимает входящие личные сообщения строго определенного формата (Код из 3х символов) от Клиентов
+и передает их Админам (фиксированный список пользователей) в виде пересланого сообщения (Обращения).
+Если Админ ответит (строго при помощи функции "Reply" на конкретное Обращение),
+текст Ответа будет передан Клиенту в качестве нового личного сообщения.
+"""
 from aiotg import Bot, Chat, CallbackQuery
 import re
 import os
@@ -12,7 +20,10 @@ if __name__ == '__main__':
 
     @bot.command("/start")
     @bot.command("/?help")
-    async def start_poker(chat: Chat, match):
+    async def start_chat(chat: Chat, match):
+        """
+        обработчик начала работы Клиента с Ботом.
+        """
         await chat.send_text("Здравствуйте, для запроса пароля введите код из ЛИСа и дождитесь ответа"
                              "\nНапоминаю, что ввод пароля нужен только при первом запуске приложения после установки или переустановки приложения"
                              "\nВаши данные никуда не передаются и не сохраняются"
@@ -41,30 +52,40 @@ if __name__ == '__main__':
 
     @bot.default
     async def echo(chat, message):
+        """
+        Обработчик всех входящих сообщений. Собержит основную логику принятия решений о пересылке сообщений
+        """
         print(message)
+        #@todo сделать нормальное логирование
         # channel.forward_message(chat.id, message['message_id'] )
 
-        # проверим, не ответ ли это
+        # проверим, не Ответ ли это от Админов
         if ((message["from"]["id"] in admins) and ("reply_to_message" in message)):
-            # @todo возможно надо добавить проверку, что переслано сообщение от 6206108722
+            # @todo возможно надо добавить проверку, что переслано сообщение от 6206108722 т.е. от самого бота
+            #формируем текст отчета об Ответе
             rep = "исходное сообщение:" + "\nот " + str(message["reply_to_message"]["forward_from"]["id"]) + "\n" + \
                   message["reply_to_message"]["forward_from"]["first_name"] + " "
+            # фамилия может быть не заполнена
             if ("last_name" in message["reply_to_message"]["forward_from"]):
                 rep += message["reply_to_message"]["forward_from"]["last_name"]
             rep +=  "\n" + message["reply_to_message"]["text"]
             print(rep)
+            #соединяемся с персональным чатом автора исходного сообщения(Клиент, отправивший обращение с кодом)
             reply = bot.channel(message["reply_to_message"]["forward_from"]["id"])
+            #отправляем Клиенту текст из сообщения-Ответа Админа
             await reply.send_text(message["text"])
-
+            #отправляем отчет Админу
             return await chat.reply("передано\n"+rep)
 
+        #если текст входящего сообщение подходит под формат Кода (3 числа)
         if (re.fullmatch(r"(\d{3})", message['text'])):
             print(message['text'])
             #await channel.forward_message(chat.id, message['message_id'])
+            #пересылаем Обращение Админам
             for ch in channels:
                 await ch.forward_message(chat.id, message['message_id'])
             return await chat.reply("Информацию принял, передаю. Ждите ответа")
-
+        #отвечаем на все остальные неопознанные сообщения
         return chat.reply("Введите только цифры кода")
 
 
@@ -72,4 +93,6 @@ if __name__ == '__main__':
     #создадим соединения с админами
     for a in admins:
         channels.append(  bot.channel(a))
+    #@todo убрать временный костыль. отправка сообщения о старте первому из Админов
+    channels[0].send_text("Стартую")
     bot.run()

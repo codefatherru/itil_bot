@@ -4,6 +4,8 @@
 
 # Usage
 
+запуск:
+
 windows
 ```
 run.bat 6206108722:some-token
@@ -17,4 +19,14 @@ ITIL_BOT_TOKEN=6206108722:some-token ./run.sh
  bash ./run.sh -ITIL_BOT_TOKEN "6206108722:some-token" 
 ```
 будут созданы и запушены образ и контейнер `itilbot`. 
-параметром вызова является токен бота
+параметром вызова является токен бота (должен попасть в переменную окружения ITIL_BOT_TOKEN)
+
+#Errors
+
+```
+ERROR:aiotg:Not Found
+```
+```
+aiotg.bot.BotApiError: Not Found
+```
+При вызове не был передан ITIL_BOT_TOKEN
