@@ -62,13 +62,13 @@ if __name__ == '__main__':
         # проверим, не Ответ ли это от Админов
         if ((message["from"]["id"] in admins) and ("reply_to_message" in message)):
             # @todo возможно надо добавить проверку, что переслано сообщение от 6206108722 т.е. от самого бота
-            if(("reply_to_message" in message) and ("*INBOX from*" in message["reply_to_message"]["text"])):
+            if(("reply_to_message" in message) and ("\n" in message["reply_to_message"]["text"])):
                 #поймали ответ на техническое сообщение
-                data = message["reply_to_message"]["text"].split("*")
+                data = message["reply_to_message"]["text"].split("\n")
                 print(data)
-                rep = "исходное сообщение:" + "\nот " + data[2] + "\n" +data[3]
+                rep = "исходное сообщение:" + "\nот " + data[0] + "\n" + data[1] + "\n" + data[2]
                 # соединяемся с персональным чатом автора исходного сообщения(Клиент, отправивший обращение с кодом)
-                reply = bot.channel(data[2])
+                reply = bot.channel(data[0])
                 await reply.send_text(message["text"])
                 return await chat.reply("передано\n" + rep)
             elif ("forward_from" in message["reply_to_message"]):#это ответ на обычное пересланное Обращение
@@ -99,7 +99,11 @@ if __name__ == '__main__':
                 #Пересылаем исхожное Обращение
                 await ch.forward_message(chat.id, message['message_id'])
                 #отправляем техническое сообщение
-                await ch.send_text("*INBOX from*" + str(message["from"]['id']) +"*" + message["text"], markup="MarkdownV2")
+                rep =  message["from"]["first_name"]
+                # фамилия может быть не заполнена
+                if ("last_name" in message["from"]):
+                    rep += " " + message["from"]["last_name"]
+                await ch.send_text(str(message["from"]['id'])+"\n["+rep+"](tg://user?id=" + str(message["from"]['id']) +")\n```" + message["text"] +"```", parse_mode="Markdown")
             return await chat.reply("Информацию принял, передаю. Ждите ответа")
         #отвечаем на все остальные неопознанные сообщения
         return chat.reply("Введите только цифры кода")
