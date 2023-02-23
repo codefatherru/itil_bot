@@ -6,4 +6,4 @@ RUN pip install --no-cache-dir -r /requirements.txt
 COPY main.py /
 
 WORKDIR /
-CMD PYTHONPATH=. python main.py
+CMD PYTHONPATH=. python main.py -u
