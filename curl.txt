@@ -1,16 +1,18 @@
-curl 'https://moscow.megafon.ru/api/unite/v1/cdss/mid' \
+curl 'https://moscow.megafon.ru/api/lk/clone/info' \
   -H 'Accept: application/json, text/plain, */*' \
   -H 'Accept-Language: ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7' \
   -H 'Cache-Control: no-cache' \
   -H 'Connection: keep-alive' \
+  -H 'Content-Type: application/json' \
   -b 'tmr_lvid=9ff438b1c18f8a9bdd32253a89d02ac2; tmr_lvidTS=1762886458466; _ym_uid=176288645985168560; _ym_d=1762886459; _ym_visorc=b; _ym_isad=2; mindboxDeviceUUID=2b88142a-e896-4f78-9042-d7d8f806b546; directCrm-session=%7B%22deviceGuid%22%3A%222b88142a-e896-4f78-9042-d7d8f806b546%22%7D; _ymab_param=3Mupkveh2_bgDHFXfCJXbKKgUQdqoWBaRcSSPKb-PTfIbyfiBtJkupw_I7KDf1_N8pnXR-Fj9slwXz2O1pN7jHHBhNQ; domain_sid=DvNXmLUQfGJfC0wReUU1Z%3A1762886460394; popmechanic_sbjs_migrations=popmechanic_1418474375998%3D1%7C%7C%7C1471519752600%3D1%7C%7C%7C1471519752605%3D1; mid=28e12f4c-a753-4c10-9c85-25294ef4557c; tmr_detect=0%7C1762886465762' \
+  -H 'Origin: https://moscow.megafon.ru' \
   -H 'Pragma: no-cache' \
   -H 'Referer: https://moscow.megafon.ru/perenos_tarifa/drugoy_operator/' \
   -H 'Sec-Fetch-Dest: empty' \
   -H 'Sec-Fetch-Mode: cors' \
   -H 'Sec-Fetch-Site: same-origin' \
   -H 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36' \
-  -H 'X-API-Scope: browser' \
   -H 'sec-ch-ua: "Chromium";v="142", "Google Chrome";v="142", "Not_A Brand";v="99"' \
   -H 'sec-ch-ua-mobile: ?0' \
-  -H 'sec-ch-ua-platform: "Windows"'
+  -H 'sec-ch-ua-platform: "Windows"' \
+  --data-raw '{"msisdn":"926 "}'
