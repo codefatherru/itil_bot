@@ -1,4 +1,4 @@
-curl 'https://moscow.megafon.ru/api/lk/clone/info' \
+curl 'https://moscow.megafon.ru/api/lk/clone/otp/request' \
   -H 'Accept: application/json, text/plain, */*' \
   -H 'Accept-Language: ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7' \
   -H 'Cache-Control: no-cache' \
