@@ -1,0 +1,17 @@
+
+-логирование
+-- докер
+
+
+______________________________
+В Docker каждый контейнер имеет свою собственную механику логирования, и логи обычно хранятся в файловой системе хоста или отправляются в централизованную систему логирования. По умолчанию в Docker используется драйвер логирования json-file, который хранит логи в формате JSON на файловой системе хоста.
+
+Для просмотра логов работающего контейнера можно использовать команду docker logs.
+## View the logs of a running container
+docker logs my-container
+
+## View the last 10 lines of the logs
+docker logs --tail 10 my-container
+
+## Follow the logs in real-time
+docker logs -f my-container

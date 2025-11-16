@@ -10,6 +10,8 @@ windows
 ```
 run.bat 6206108722:some-token
 ```
+для удобства можно создать Ярлык с указанием токена. внимание. параметр задаётся без "ITIL_BOT_TOKEN=" : сразу значение
+
 unix
  
 ```
@@ -21,6 +23,9 @@ ITIL_BOT_TOKEN=6206108722:some-token ./run.sh
 будут созданы и запушены образ и контейнер `itilbot`. 
 параметром вызова является токен бота (должен попасть в переменную окружения ITIL_BOT_TOKEN)
 
+для чтения логов докера можно использовать консольную команду ``docker logs itilbot
+``
+
 #Errors
 
 ```
@@ -30,3 +35,8 @@ ERROR:aiotg:Not Found
 aiotg.bot.BotApiError: Not Found
 ```
 При вызове не был передан ITIL_BOT_TOKEN
+
+``
+error during connect: this error may indicate that the docker daemon is not running
+``
+означает, что не запущен docker daemon

@@ -9,13 +9,36 @@ Telegram Бот для обработки входящий сообщений.
 from aiotg import Bot, Chat, CallbackQuery
 import re
 import os
+import requests
+
+import logging
+
+## Set up basic logging configuration
+logging.basicConfig(level=logging.DEBUG)
+
+import http.client
+
+httpclient_logger = logging.getLogger("http.client")
+
+def httpclient_logging_patch(level=logging.DEBUG):
+    """Enable HTTPConnection debug logging to the logging framework."""
+    def httpclient_log(*args):
+        httpclient_logger.log(level, " ".join(args))
+
+    http.client.print = httpclient_log
+    http.client.HTTPConnection.debuglevel = 1
+
+httpclient_logging_patch()
+
 
 if __name__ == '__main__':
 
     # @todo переделать под параметры
+    print('параметр ', os.getenv('ITIL_BOT_TOKEN'))
 
     bot = Bot(api_token=os.getenv('ITIL_BOT_TOKEN'))#взяли токен из параметров запуска
-    admins = [213199160, 1722583749] #список админов
+    admins = [213199160, 224671539] #список админов
+    mid = None
 
 
     @bot.command("/start")
@@ -24,30 +47,10 @@ if __name__ == '__main__':
         """
         обработчик начала работы Клиента с Ботом.
         """
-        await chat.send_text("Здравствуйте, для запроса пароля введите код из ЛИСа и дождитесь ответа"
-                             "\nНапоминаю, что ввод пароля нужен только при первом запуске приложения после установки или переустановки приложения"
-                             "\nВаши данные никуда не передаются и не сохраняются"
-                             "\nСпасибо, что пользуетесь приложением")
+        await chat.send_text("Здравствуйте, введите телефонный номер")
 
 
-    """ @bot.command(r"(\d{4})")
-    async def code(chat: Chat, message, match):
-        print(match.group(1))
-        await channel.forward_message(chat.id, message['message_id'])
-        return await chat.reply("Информацию принял, передаю. Ждите ответа")"""
 
-    """    @bot.command(r"(.+)")
-    async def again(chat: Chat, match):
-        print(chat.id)
-        #print(chat.get_chat())
-        #print(match)
-        #print(Chat.get_chat(chat))
-        print(chat.sender.keys())
-        print(chat.sender['id'])
-        # леонов 213199160
-        #match.group(1)
-        #chat.forward_message(213199160,)
-        return chat.reply(" заявку принял ")"""
 
 
     @bot.default
@@ -55,64 +58,340 @@ if __name__ == '__main__':
         """
         Обработчик всех входящих сообщений. Собержит основную логику принятия решений о пересылке сообщений
         """
+        global tel, mid
+        print('tel', tel, 'mid', mid)
         print(message)
         #@todo сделать нормальное логирование
         # channel.forward_message(chat.id, message['message_id'] )
 
-        # проверим, не Ответ ли это от Админов
-        if ((message["from"]["id"] in admins) and ("reply_to_message" in message)):
-            # @todo возможно надо добавить проверку, что переслано сообщение от 6206108722 т.е. от самого бота
-            if(("reply_to_message" in message) and ("\n" in message["reply_to_message"]["text"])):
-                #поймали ответ на техническое сообщение
-                data = message["reply_to_message"]["text"].split("\n")
-                print(data)
-                rep = "исходное сообщение:" + "\nот " + data[0] + "\n" + data[1] + "\n" + data[2]
-                # соединяемся с персональным чатом автора исходного сообщения(Клиент, отправивший обращение с кодом)
-                reply = bot.channel(data[0])
-                await reply.send_text(message["text"])
-                return await chat.reply("передано\n" + rep)
-            elif ("forward_from" in message["reply_to_message"]):#это ответ на обычное пересланное Обращение
-                #формируем текст отчета об Ответе
-                rep = "исходное сообщение:" + "\nот " + str(message["reply_to_message"]["forward_from"]["id"]) + "\n" + \
-                      message["reply_to_message"]["forward_from"]["first_name"] + " "
-                # фамилия может быть не заполнена
-                if ("last_name" in message["reply_to_message"]["forward_from"]):
-                    rep += message["reply_to_message"]["forward_from"]["last_name"]
-                rep +=  "\n" + message["reply_to_message"]["text"]
-                print(rep)
-                #соединяемся с персональным чатом автора исходного сообщения(Клиент, отправивший обращение с кодом)
-                reply = bot.channel(message["reply_to_message"]["forward_from"]["id"])
-                #отправляем Клиенту текст из сообщения-Ответа Админа
-                await reply.send_text(message["text"])
-                #отправляем отчет Админу
-                return await chat.reply("передано\n"+rep)
-            elif ("forward_sender_name" in message["reply_to_message"]):#это ответ на непересылаемое сообщение
-                return await chat.reply("Клиент не разрешил пересылать свои Обращения, используйте техническое сообщение")
 
-
-        #если текст входящего сообщение подходит под формат Кода (3 числа)
-        if (re.fullmatch(r"(\d{3})", message['text'])):
+        #если текст входящего сообщение подходит под формат телефона (10 чисел)
+        if (re.fullmatch(r"(\d{10})", message['text'])):
             print(message['text'])
             #await channel.forward_message(chat.id, message['message_id'])
-            #пересылаем Обращение Админам
-            for ch in channels:
-                #Пересылаем исхожное Обращение
-                await ch.forward_message(chat.id, message['message_id'])
-                #отправляем техническое сообщение
-                rep =  message["from"]["first_name"]
-                # фамилия может быть не заполнена
-                if ("last_name" in message["from"]):
-                    rep += " " + message["from"]["last_name"]
-                await ch.send_text(str(message["from"]['id'])+"\n["+rep+"](tg://user?id=" + str(message["from"]['id']) +")\n```" + message["text"] +"```", parse_mode="Markdown")
-            return await chat.reply("Информацию принял, передаю. Ждите ответа")
+
+            tel = message['text']
+
+            cookies = {
+                'tmr_lvid': '9ff438b1c18f8a9bdd32253a89d02ac2',
+                'tmr_lvidTS': '1762886458466',
+                '_ym_uid': '176288645985168560',
+                '_ym_d': '1762886459',
+                '_ym_visorc': 'b',
+                '_ym_isad': '2',
+                'mindboxDeviceUUID': '2b88142a-e896-4f78-9042-d7d8f806b546',
+                'directCrm-session': '%7B%22deviceGuid%22%3A%222b88142a-e896-4f78-9042-d7d8f806b546%22%7D',
+                '_ymab_param': '3Mupkveh2_bgDHFXfCJXbKKgUQdqoWBaRcSSPKb-PTfIbyfiBtJkupw_I7KDf1_N8pnXR-Fj9slwXz2O1pN7jHHBhNQ',
+                'domain_sid': 'DvNXmLUQfGJfC0wReUU1Z%3A1762886460394',
+                'popmechanic_sbjs_migrations': 'popmechanic_1418474375998%3D1%7C%7C%7C1471519752600%3D1%7C%7C%7C1471519752605%3D1',
+                'mid': mid,
+                'tmr_detect': '0%7C1762886465762',
+            }
+
+            headers = {
+                'Accept': 'application/json, text/plain, */*',
+                'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
+                'Cache-Control': 'no-cache',
+                'Connection': 'keep-alive',
+                'Pragma': 'no-cache',
+                'Referer': 'https://moscow.megafon.ru/perenos_tarifa/drugoy_operator/',
+                'Sec-Fetch-Dest': 'empty',
+                'Sec-Fetch-Mode': 'cors',
+                'Sec-Fetch-Site': 'same-origin',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36',
+                'X-API-Scope': 'browser',
+                'sec-ch-ua': '"Chromium";v="142", "Google Chrome";v="142", "Not_A Brand";v="99"',
+                'sec-ch-ua-mobile': '?0',
+                'sec-ch-ua-platform': '"Windows"',
+                # 'Cookie': 'tmr_lvid=9ff438b1c18f8a9bdd32253a89d02ac2; tmr_lvidTS=1762886458466; _ym_uid=176288645985168560; _ym_d=1762886459; _ym_visorc=b; _ym_isad=2; mindboxDeviceUUID=2b88142a-e896-4f78-9042-d7d8f806b546; directCrm-session=%7B%22deviceGuid%22%3A%222b88142a-e896-4f78-9042-d7d8f806b546%22%7D; _ymab_param=3Mupkveh2_bgDHFXfCJXbKKgUQdqoWBaRcSSPKb-PTfIbyfiBtJkupw_I7KDf1_N8pnXR-Fj9slwXz2O1pN7jHHBhNQ; domain_sid=DvNXmLUQfGJfC0wReUU1Z%3A1762886460394; popmechanic_sbjs_migrations=popmechanic_1418474375998%3D1%7C%7C%7C1471519752600%3D1%7C%7C%7C1471519752605%3D1; mid=28e12f4c-a753-4c10-9c85-25294ef4557c; tmr_detect=0%7C1762886465762',
+            }
+
+            response = requests.get('https://moscow.megafon.ru/api/unite/v1/cdss/mid', cookies=cookies, headers=headers)
+
+            if response.status_code == 200:
+                json_data = response.json()
+                print(json_data)
+                mid = json_data['mid']
+
+
+
+            cookies = {
+                'tmr_lvid': '9ff438b1c18f8a9bdd32253a89d02ac2',
+                'tmr_lvidTS': '1762886458466',
+                '_ym_uid': '176288645985168560',
+                '_ym_d': '1762886459',
+                '_ym_visorc': 'b',
+                '_ym_isad': '2',
+                'mindboxDeviceUUID': '2b88142a-e896-4f78-9042-d7d8f806b546',
+                'directCrm-session': '%7B%22deviceGuid%22%3A%222b88142a-e896-4f78-9042-d7d8f806b546%22%7D',
+                '_ymab_param': '3Mupkveh2_bgDHFXfCJXbKKgUQdqoWBaRcSSPKb-PTfIbyfiBtJkupw_I7KDf1_N8pnXR-Fj9slwXz2O1pN7jHHBhNQ',
+                'domain_sid': 'DvNXmLUQfGJfC0wReUU1Z%3A1762886460394',
+                'popmechanic_sbjs_migrations': 'popmechanic_1418474375998%3D1%7C%7C%7C1471519752600%3D1%7C%7C%7C1471519752605%3D1',
+                'mid': mid,
+                'tmr_detect': '0%7C1762886465762',
+            }
+
+            headers = {
+                'Accept': 'application/json, text/plain, */*',
+                'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
+                'Cache-Control': 'no-cache',
+                'Connection': 'keep-alive',
+                'Content-Type': 'application/json',
+                'Origin': 'https://moscow.megafon.ru',
+                'Pragma': 'no-cache',
+                'Referer': 'https://moscow.megafon.ru/perenos_tarifa/drugoy_operator/',
+                'Sec-Fetch-Dest': 'empty',
+                'Sec-Fetch-Mode': 'cors',
+                'Sec-Fetch-Site': 'same-origin',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36',
+                'sec-ch-ua': '"Chromium";v="142", "Google Chrome";v="142", "Not_A Brand";v="99"',
+                'sec-ch-ua-mobile': '?0',
+                'sec-ch-ua-platform': '"Windows"',
+                # 'Cookie': 'tmr_lvid=9ff438b1c18f8a9bdd32253a89d02ac2; tmr_lvidTS=1762886458466; _ym_uid=176288645985168560; _ym_d=1762886459; _ym_visorc=b; _ym_isad=2; mindboxDeviceUUID=2b88142a-e896-4f78-9042-d7d8f806b546; directCrm-session=%7B%22deviceGuid%22%3A%222b88142a-e896-4f78-9042-d7d8f806b546%22%7D; _ymab_param=3Mupkveh2_bgDHFXfCJXbKKgUQdqoWBaRcSSPKb-PTfIbyfiBtJkupw_I7KDf1_N8pnXR-Fj9slwXz2O1pN7jHHBhNQ; domain_sid=DvNXmLUQfGJfC0wReUU1Z%3A1762886460394; popmechanic_sbjs_migrations=popmechanic_1418474375998%3D1%7C%7C%7C1471519752600%3D1%7C%7C%7C1471519752605%3D1; mid=28e12f4c-a753-4c10-9c85-25294ef4557c; tmr_detect=0%7C1762886465762',
+            }
+
+            json_data = {
+                'msisdn': tel,
+            }
+
+            response = requests.post('https://moscow.megafon.ru/api/lk/clone/info', cookies=cookies, headers=headers,
+                                     json=json_data)
+            json_data = response.json()
+            print(json_data)
+
+
+
+            cookies = {
+                'tmr_lvid': '9ff438b1c18f8a9bdd32253a89d02ac2',
+                'tmr_lvidTS': '1762886458466',
+                '_ym_uid': '176288645985168560',
+                '_ym_d': '1762886459',
+                '_ym_visorc': 'b',
+                '_ym_isad': '2',
+                'mindboxDeviceUUID': '2b88142a-e896-4f78-9042-d7d8f806b546',
+                'directCrm-session': '%7B%22deviceGuid%22%3A%222b88142a-e896-4f78-9042-d7d8f806b546%22%7D',
+                '_ymab_param': '3Mupkveh2_bgDHFXfCJXbKKgUQdqoWBaRcSSPKb-PTfIbyfiBtJkupw_I7KDf1_N8pnXR-Fj9slwXz2O1pN7jHHBhNQ',
+                'domain_sid': 'DvNXmLUQfGJfC0wReUU1Z%3A1762886460394',
+                'popmechanic_sbjs_migrations': 'popmechanic_1418474375998%3D1%7C%7C%7C1471519752600%3D1%7C%7C%7C1471519752605%3D1',
+                'mid': mid,
+                'tmr_detect': '0%7C1762886465762',
+            }
+
+            headers = {
+                'Accept': 'application/json, text/plain, */*',
+                'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
+                'Cache-Control': 'no-cache',
+                'Connection': 'keep-alive',
+                'Content-Type': 'application/json',
+                'Origin': 'https://moscow.megafon.ru',
+                'Pragma': 'no-cache',
+                'Referer': 'https://moscow.megafon.ru/perenos_tarifa/drugoy_operator/',
+                'Sec-Fetch-Dest': 'empty',
+                'Sec-Fetch-Mode': 'cors',
+                'Sec-Fetch-Site': 'same-origin',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36',
+                'sec-ch-ua': '"Chromium";v="142", "Google Chrome";v="142", "Not_A Brand";v="99"',
+                'sec-ch-ua-mobile': '?0',
+                'sec-ch-ua-platform': '"Windows"',
+                # 'Cookie': 'tmr_lvid=9ff438b1c18f8a9bdd32253a89d02ac2; tmr_lvidTS=1762886458466; _ym_uid=176288645985168560; _ym_d=1762886459; _ym_visorc=b; _ym_isad=2; mindboxDeviceUUID=2b88142a-e896-4f78-9042-d7d8f806b546; directCrm-session=%7B%22deviceGuid%22%3A%222b88142a-e896-4f78-9042-d7d8f806b546%22%7D; _ymab_param=3Mupkveh2_bgDHFXfCJXbKKgUQdqoWBaRcSSPKb-PTfIbyfiBtJkupw_I7KDf1_N8pnXR-Fj9slwXz2O1pN7jHHBhNQ; domain_sid=DvNXmLUQfGJfC0wReUU1Z%3A1762886460394; popmechanic_sbjs_migrations=popmechanic_1418474375998%3D1%7C%7C%7C1471519752600%3D1%7C%7C%7C1471519752605%3D1; mid=28e12f4c-a753-4c10-9c85-25294ef4557c; tmr_detect=0%7C1762886465762',
+            }
+
+            json_data = {
+                'msisdn': tel,
+            }
+
+
+            response = requests.post('https://moscow.megafon.ru/api/lk/clone/otp/request', cookies=cookies, headers=headers, json=json_data)
+
+            json_data = response.json()
+            print(json_data)
+
+            if response.status_code == 200:
+                return await chat.reply("Информацию принял, передаю. Ждите SMS и введите код")
+            else:
+                return await chat.reply("Ошибка! " + json_data)
+
         #отвечаем на все остальные неопознанные сообщения
-        return chat.reply("Введите только цифры кода")
+        #return chat.reply("Введите только 10 цифр номера")
+
+        #если текст входящего сообщение подходит под формат Кода (6 чисел)
+        if (re.fullmatch(r"(\d{6})", message['text'])):
+            print(message['text'])
+            #await channel.forward_message(chat.id, message['message_id'])
+
+            cookies = {
+                'tmr_lvid': '9ff438b1c18f8a9bdd32253a89d02ac2',
+                'tmr_lvidTS': '1762886458466',
+                '_ym_uid': '176288645985168560',
+                '_ym_d': '1762886459',
+                '_ym_visorc': 'b',
+                '_ym_isad': '2',
+                'mindboxDeviceUUID': '2b88142a-e896-4f78-9042-d7d8f806b546',
+                'directCrm-session': '%7B%22deviceGuid%22%3A%222b88142a-e896-4f78-9042-d7d8f806b546%22%7D',
+                '_ymab_param': '3Mupkveh2_bgDHFXfCJXbKKgUQdqoWBaRcSSPKb-PTfIbyfiBtJkupw_I7KDf1_N8pnXR-Fj9slwXz2O1pN7jHHBhNQ',
+                'domain_sid': 'DvNXmLUQfGJfC0wReUU1Z%3A1762886460394',
+                'popmechanic_sbjs_migrations': 'popmechanic_1418474375998%3D1%7C%7C%7C1471519752600%3D1%7C%7C%7C1471519752605%3D1',
+                'tmr_detect': '0%7C1762886465762',
+                'mid': mid,
+            }
+
+            headers = {
+                'Accept': 'application/json, text/plain, */*',
+                'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
+                'Cache-Control': 'no-cache',
+                'Connection': 'keep-alive',
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Origin': 'https://moscow.megafon.ru',
+                'Pragma': 'no-cache',
+                'Referer': 'https://moscow.megafon.ru/perenos_tarifa/drugoy_operator/',
+                'Sec-Fetch-Dest': 'empty',
+                'Sec-Fetch-Mode': 'cors',
+                'Sec-Fetch-Site': 'same-origin',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36',
+                'X-API-Scope': 'browser',
+                'sec-ch-ua': '"Chromium";v="142", "Google Chrome";v="142", "Not_A Brand";v="99"',
+                'sec-ch-ua-mobile': '?0',
+                'sec-ch-ua-platform': '"Windows"',
+                # 'Cookie': 'tmr_lvid=9ff438b1c18f8a9bdd32253a89d02ac2; tmr_lvidTS=1762886458466; _ym_uid=176288645985168560; _ym_d=1762886459; _ym_visorc=b; _ym_isad=2; mindboxDeviceUUID=2b88142a-e896-4f78-9042-d7d8f806b546; directCrm-session=%7B%22deviceGuid%22%3A%222b88142a-e896-4f78-9042-d7d8f806b546%22%7D; _ymab_param=3Mupkveh2_bgDHFXfCJXbKKgUQdqoWBaRcSSPKb-PTfIbyfiBtJkupw_I7KDf1_N8pnXR-Fj9slwXz2O1pN7jHHBhNQ; domain_sid=DvNXmLUQfGJfC0wReUU1Z%3A1762886460394; popmechanic_sbjs_migrations=popmechanic_1418474375998%3D1%7C%7C%7C1471519752600%3D1%7C%7C%7C1471519752605%3D1; tmr_detect=0%7C1762886465762; mid=926cd472-e11b-45e4-a25b-0302c1debbbb',
+            }
+
+            params = {
+                'mid': mid,
+            }
+
+            data = {
+                'msisdn': tel,
+                'priority': '2',
+            }
+
+            response = requests.post(
+                'https://moscow.megafon.ru/api/unite/v1/cdss/set?mid='+mid,
+                params=params,
+                cookies=cookies,
+                headers=headers,
+                data=data,
+            )
+            json_data = response.json()
+            print(json_data)
+
+            cookies = {
+                'tmr_lvid': '9ff438b1c18f8a9bdd32253a89d02ac2',
+                'tmr_lvidTS': '1762886458466',
+                '_ym_uid': '176288645985168560',
+                '_ym_d': '1762886459',
+                '_ym_visorc': 'b',
+                '_ym_isad': '2',
+                'mindboxDeviceUUID': '2b88142a-e896-4f78-9042-d7d8f806b546',
+                'directCrm-session': '%7B%22deviceGuid%22%3A%222b88142a-e896-4f78-9042-d7d8f806b546%22%7D',
+                '_ymab_param': '3Mupkveh2_bgDHFXfCJXbKKgUQdqoWBaRcSSPKb-PTfIbyfiBtJkupw_I7KDf1_N8pnXR-Fj9slwXz2O1pN7jHHBhNQ',
+                'domain_sid': 'DvNXmLUQfGJfC0wReUU1Z%3A1762886460394',
+                'popmechanic_sbjs_migrations': 'popmechanic_1418474375998%3D1%7C%7C%7C1471519752600%3D1%7C%7C%7C1471519752605%3D1',
+                'tmr_detect': '0%7C1762886465762',
+                'mid': mid,
+            }
+
+            headers = {
+                'Accept': 'application/json, text/plain, */*',
+                'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
+                'Cache-Control': 'no-cache',
+                'Connection': 'keep-alive',
+                'Content-Type': 'application/json',
+                'Origin': 'https://moscow.megafon.ru',
+                'Pragma': 'no-cache',
+                'Referer': 'https://moscow.megafon.ru/perenos_tarifa/drugoy_operator/',
+                'Sec-Fetch-Dest': 'empty',
+                'Sec-Fetch-Mode': 'cors',
+                'Sec-Fetch-Site': 'same-origin',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36',
+                'sec-ch-ua': '"Chromium";v="142", "Google Chrome";v="142", "Not_A Brand";v="99"',
+                'sec-ch-ua-mobile': '?0',
+                'sec-ch-ua-platform': '"Windows"',
+                # 'Cookie': 'tmr_lvid=9ff438b1c18f8a9bdd32253a89d02ac2; tmr_lvidTS=1762886458466; _ym_uid=176288645985168560; _ym_d=1762886459; _ym_visorc=b; _ym_isad=2; mindboxDeviceUUID=2b88142a-e896-4f78-9042-d7d8f806b546; directCrm-session=%7B%22deviceGuid%22%3A%222b88142a-e896-4f78-9042-d7d8f806b546%22%7D; _ymab_param=3Mupkveh2_bgDHFXfCJXbKKgUQdqoWBaRcSSPKb-PTfIbyfiBtJkupw_I7KDf1_N8pnXR-Fj9slwXz2O1pN7jHHBhNQ; domain_sid=DvNXmLUQfGJfC0wReUU1Z%3A1762886460394; popmechanic_sbjs_migrations=popmechanic_1418474375998%3D1%7C%7C%7C1471519752600%3D1%7C%7C%7C1471519752605%3D1; tmr_detect=0%7C1762886465762; mid=926cd472-e11b-45e4-a25b-0302c1debbbb',
+            }
+
+            json_data = {
+                'otp': message['text'],
+                'msisdn': tel,
+            }
+
+            response = requests.post('https://moscow.megafon.ru/api/lk/clone/otp/submit', cookies=cookies, headers=headers, json=json_data)
+            print(response)
+            print(response.status_code)
+            json_data = response.json()
+            print(json_data)
+
+            if response.status_code == 200:
+                await chat.reply("Код верный")
+
+                cookies = {
+                    'tmr_lvid': '9ff438b1c18f8a9bdd32253a89d02ac2',
+                    'tmr_lvidTS': '1762886458466',
+                    '_ym_uid': '176288645985168560',
+                    '_ym_d': '1762886459',
+                    '_ym_visorc': 'b',
+                    '_ym_isad': '2',
+                    'mindboxDeviceUUID': '2b88142a-e896-4f78-9042-d7d8f806b546',
+                    'directCrm-session': '%7B%22deviceGuid%22%3A%222b88142a-e896-4f78-9042-d7d8f806b546%22%7D',
+                    '_ymab_param': '3Mupkveh2_bgDHFXfCJXbKKgUQdqoWBaRcSSPKb-PTfIbyfiBtJkupw_I7KDf1_N8pnXR-Fj9slwXz2O1pN7jHHBhNQ',
+                    'domain_sid': 'DvNXmLUQfGJfC0wReUU1Z%3A1762886460394',
+                    'popmechanic_sbjs_migrations': 'popmechanic_1418474375998%3D1%7C%7C%7C1471519752600%3D1%7C%7C%7C1471519752605%3D1',
+                    'tmr_detect': '0%7C1762886465762',
+                    'mid': mid,
+                    'cookies-informer': '%7B%22version%22%3A%2215.242%22%2C%22closed%22%3Atrue%7D',
+                }
+
+                headers = {
+                    'Accept': 'application/json, text/plain, */*',
+                    'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
+                    'Cache-Control': 'no-cache',
+                    'Connection': 'keep-alive',
+                    'Content-Type': 'application/json',
+                    'Origin': 'https://moscow.megafon.ru',
+                    'Pragma': 'no-cache',
+                    'Referer': 'https://moscow.megafon.ru/perenos_tarifa/drugoy_operator/',
+                    'Sec-Fetch-Dest': 'empty',
+                    'Sec-Fetch-Mode': 'cors',
+                    'Sec-Fetch-Site': 'same-origin',
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36',
+                    'sec-ch-ua': '"Chromium";v="142", "Google Chrome";v="142", "Not_A Brand";v="99"',
+                    'sec-ch-ua-mobile': '?0',
+                    'sec-ch-ua-platform': '"Windows"',
+                    # 'Cookie': 'tmr_lvid=9ff438b1c18f8a9bdd32253a89d02ac2; tmr_lvidTS=1762886458466; _ym_uid=176288645985168560; _ym_d=1762886459; _ym_visorc=b; _ym_isad=2; mindboxDeviceUUID=2b88142a-e896-4f78-9042-d7d8f806b546; directCrm-session=%7B%22deviceGuid%22%3A%222b88142a-e896-4f78-9042-d7d8f806b546%22%7D; _ymab_param=3Mupkveh2_bgDHFXfCJXbKKgUQdqoWBaRcSSPKb-PTfIbyfiBtJkupw_I7KDf1_N8pnXR-Fj9slwXz2O1pN7jHHBhNQ; domain_sid=DvNXmLUQfGJfC0wReUU1Z%3A1762886460394; popmechanic_sbjs_migrations=popmechanic_1418474375998%3D1%7C%7C%7C1471519752600%3D1%7C%7C%7C1471519752605%3D1; tmr_detect=0%7C1762886465762; mid=926cd472-e11b-45e4-a25b-0302c1debbbb; cookies-informer=%7B%22version%22%3A%2215.242%22%2C%22closed%22%3Atrue%7D',
+                }
+
+                json_data = {
+                    'msisdn': tel,
+                    'minute': 5000,
+                    'internet': 999999999,
+                    'price': 300,
+                }
+
+                response = requests.post('https://moscow.megafon.ru/api/lk/clone', cookies=cookies, headers=headers,
+                                         json=json_data)
+
+                print(response)
+                print(response.status_code)
+                json_data = response.json()
+                print(json_data)
 
 
+                if response.status_code == 200:
+                    return await chat.reply("Ваш Промокод для " + tel + " :\n" + json_data['value'])
+                else:
+                    return await chat.reply("Ошибка! " + json_data['error']['message'])
+
+            else:
+                return await chat.reply("Ошибка! " + json_data['error']['message'])
+
+            #отвечаем на все остальные неопознанные сообщения
+        return chat.reply("Введите только 10 цифр номера или 6 цифр SMS кода")
+
+    tel = None
     channels = []
     #создадим соединения с админами
     for a in admins:
         channels.append(  bot.channel(a))
     #@todo убрать временный костыль. отправка сообщения о старте первому из Админов
-    channels[0].send_text("Стартую")
+    channels[0].send_text("Стартую. Введите 10 цифр номера")
+    channels[1].send_text("Стартую. Введите 10 цифр номера")
     bot.run()

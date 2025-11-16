@@ -2,3 +2,4 @@
 .gitattributes
 .idea/
 *.lnk
+/__pycache__
