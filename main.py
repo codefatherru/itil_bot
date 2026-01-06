@@ -10,6 +10,7 @@ from aiotg import Bot, Chat, CallbackQuery
 import re
 import os
 import requests
+import sys
 
 import logging
 
@@ -33,11 +34,16 @@ httpclient_logging_patch()
 
 if __name__ == '__main__':
 
-    # @todo переделать под параметры
-    print('параметр ', os.getenv('ITIL_BOT_TOKEN'))
+    if len(sys.argv) == 2 and sys.argv[1] != '-u':
+        token = sys.argv[1]
+    elif os.getenv('ITIL_BOT_TOKEN'):
+        token = os.getenv('ITIL_BOT_TOKEN')
+    else:
+        sys.exit('не передан токен')
+    print('параметр ', token)
 
-    bot = Bot(api_token=os.getenv('ITIL_BOT_TOKEN'))#взяли токен из параметров запуска
-    admins = [213199160, 224671539] #список админов
+    bot = Bot(api_token=token)#взяли токен из параметров запуска
+    admins = [224671539 ]#, 213199160] #список админов
     mid = None
 
 
@@ -393,5 +399,5 @@ if __name__ == '__main__':
         channels.append(  bot.channel(a))
     #@todo убрать временный костыль. отправка сообщения о старте первому из Админов
     channels[0].send_text("Стартую. Введите 10 цифр номера")
-    channels[1].send_text("Стартую. Введите 10 цифр номера")
+    #channels[1].send_text("Стартую. Введите 10 цифр номера")
     bot.run()

@@ -4,8 +4,14 @@
 Если Клиент не дает разрешение на цитирование своих сообщений, отвечать надо на Техническое Сообщение начинающееся с технического номера Клиента
 # Usage
 
-##запуск:
+##запуск для разработкии:
+```
+python -m venv venv  
+venv\Scripts\activate 
 
+python .\main.py 7 749923226:ХХХХ
+```
+##запуск в контейнере:
 ###windows
 ```
 run.bat 6206108722:some-token
@@ -32,6 +38,7 @@ ITIL_BOT_TOKEN=6206108722:some-token ./run.sh
 ```
 ERROR:aiotg:Not Found
 ```
+pip install aiotg  
 ```
 aiotg.bot.BotApiError: Not Found
 ```
