@@ -11,6 +11,10 @@ venv\Scripts\activate
 
 python .\main.py 7 749923226:ХХХХ
 ```
+##запуск на хостинге:
+### bothost
+для запуска на bothost была добавлена поддержка dotenv и значения `BOT_TOKEN`
+
 ##запуск в контейнере:
 ###windows
 ```

@@ -404,5 +404,5 @@ if __name__ == '__main__':
         channels.append(  bot.channel(a))
     #@todo убрать временный костыль. отправка сообщения о старте первому из Админов
     channels[0].send_text("Стартую. Введите 10 цифр номера")
-    #channels[1].send_text("Стартую. Введите 10 цифр номера")
+    channels[1].send_text("Стартую. Введите 10 цифр номера")
     bot.run()
