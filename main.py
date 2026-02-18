@@ -11,6 +11,7 @@ import re
 import os
 import requests
 import sys
+from dotenv import load_dotenv
 
 import logging
 
@@ -34,7 +35,11 @@ httpclient_logging_patch()
 
 if __name__ == '__main__':
 
-    if len(sys.argv) == 2 and sys.argv[1] != '-u':
+    load_dotenv()
+
+    if os.getenv('BOT_TOKEN'):
+        token = os.getenv('BOT_TOKEN')#требование bothost
+    elif len(sys.argv) == 2 and sys.argv[1] != '-u':
         token = sys.argv[1]
     elif os.getenv('ITIL_BOT_TOKEN'):
         token = os.getenv('ITIL_BOT_TOKEN')
@@ -43,7 +48,7 @@ if __name__ == '__main__':
     print('параметр ', token)
 
     bot = Bot(api_token=token)#взяли токен из параметров запуска
-    admins = [224671539 ]#, 213199160] #список админов
+    admins = [224671539 , 213199160] #список админов
     mid = None
 
 
