@@ -52,3 +52,11 @@ aiotg.bot.BotApiError: Not Found
 error during connect: this error may indicate that the docker daemon is not running
 ``
 означает, что не запущен docker daemon
+
+>   File "/usr/local/lib/python3.11/site-packages/urllib3/connection.py", line 213, in _new_conn
+    raise ConnectTimeoutError(
+urllib3.exceptions.ConnectTimeoutError: (<HTTPSConnection(host='moscow.megafon.ru', 
+
+
+> raise ConnectTimeout(e, request=request)
+requests.exceptions.ConnectTimeout: HTTPSConnectionPool(host='moscow.megafon.ru'
