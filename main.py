@@ -16,7 +16,10 @@ from dotenv import load_dotenv
 import logging
 
 ## Set up basic logging configuration
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+logging.debug("A DEBUG Message")
+logging.info("An INFO")
 
 import http.client
 
@@ -218,8 +221,10 @@ if __name__ == '__main__':
             print(json_data)
 
             if response.status_code == 200:
+                logging.info("Информацию принял, передаю. Ждите SMS и введите код")
                 return await chat.reply("Информацию принял, передаю. Ждите SMS и введите код")
             else:
+                logging.error("Ошибка! " + json_data)
                 return await chat.reply("Ошибка! " + json_data)
 
         #отвечаем на все остальные неопознанные сообщения
@@ -333,6 +338,7 @@ if __name__ == '__main__':
 
             if response.status_code == 200:
                 await chat.reply("Код верный")
+                logging.info("Код верный")
 
                 cookies = {
                     'tmr_lvid': '9ff438b1c18f8a9bdd32253a89d02ac2',
@@ -387,9 +393,12 @@ if __name__ == '__main__':
 
 
                 if response.status_code == 200:
+                    logging.info("Ваш Промокод для " + tel + " :\n" + json_data['value'])
                     return await chat.reply("Ваш Промокод для " + tel + " :\n" + json_data['value'])
                 else:
+                    logging.error("Ошибка! " + json_data['error']['message'])
                     return await chat.reply("Ошибка! " + json_data['error']['message'])
+
 
             else:
                 return await chat.reply("Ошибка! " + json_data['error']['message'])
