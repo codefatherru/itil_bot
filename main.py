@@ -380,7 +380,7 @@ if __name__ == '__main__':
                     'msisdn': tel,
                     'minute': 2000,
                     'internet': 999999999,
-                    'price': 1,
+                    'price': 390,
                 }
 
                 response = requests.post('https://moscow.megafon.ru/api/lk/clone', cookies=cookies, headers=headers,
