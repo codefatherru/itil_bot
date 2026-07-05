@@ -17,8 +17,8 @@ python .\main.py 7 749923226:ХХХХ
 
 как настроить деплой с GitHub:
 https://github.com/codefatherru/itil_bot/settings делаем репозиторий публичным
-https://github.com/settings/personal-access-tokens генерируем гранулированный токен
-https://bothost.ru/admin-repos.php заводим новый токен, старые удаляем
+https://github.com/settings/personal-access-tokens генерируем гранулированный токен для https://github.com/codefatherru/itil_bot.git
+https://bothost.ru/admin-repos.php заводим новый токен (ветка itil_bot + https токен), старые удаляем
 
 ##запуск в контейнере:
 ###windows
